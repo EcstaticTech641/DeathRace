@@ -1,0 +1,8 @@
+name: DeathRace
+version: 1.0.0
+main: com.ronlab.deathrace.DeathRacePlugin
+api-version: '1.21'
+load: BEFORE
+join-classpath: true
+depend: [RonlabGameAssistant]
+description: DeathRace companion plugin logic for Ronlab Game Assistant.
