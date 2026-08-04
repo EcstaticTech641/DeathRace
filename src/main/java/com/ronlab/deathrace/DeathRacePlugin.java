@@ -1,7 +1,8 @@
 package com.ronlab.deathrace;
 
-import com.ronlab.deathrace.listener.DeathRaceListener;
+import com.ronlab.deathrace.listener.DeathRaceEventListener;
 import com.ronlab.deathrace.prompt.DeathPrompt;
+import com.ronlab.deathrace.prompt.DeathPromptManager;
 import com.ronlab.deathrace.session.DeathRaceSession;
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
@@ -26,13 +27,15 @@ public final class DeathRacePlugin extends JavaPlugin {
 
     private static @Nullable DeathRacePlugin instance;
     private final ConcurrentHashMap<String, DeathRaceSession> activeSessions = new ConcurrentHashMap<>();
+    private @Nullable DeathPromptManager promptManager;
 
     @Override
     public void onEnable() {
         instance = this;
+        promptManager = new DeathPromptManager(this);
 
         // Register event listeners
-        getServer().getPluginManager().registerEvents(new DeathRaceListener(this), this);
+        getServer().getPluginManager().registerEvents(new DeathRaceEventListener(this), this);
 
         // Register paper BasicCommand for prompt inspection
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
@@ -49,6 +52,11 @@ public final class DeathRacePlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (promptManager != null) {
+            for (String worldName : activeSessions.keySet()) {
+                promptManager.stopSessionHud(worldName);
+            }
+        }
         activeSessions.clear();
         instance = null;
         getLogger().info("DeathRace companion plugin disabled.");
@@ -67,11 +75,19 @@ public final class DeathRacePlugin extends JavaPlugin {
 
     public @Nullable DeathRaceSession unregisterSession(@Nullable String worldName) {
         if (worldName == null) return null;
-        return activeSessions.remove(worldName);
+        DeathRaceSession session = activeSessions.remove(worldName);
+        if (promptManager != null) {
+            promptManager.stopSessionHud(worldName);
+        }
+        return session;
     }
 
     public Map<String, DeathRaceSession> getActiveSessions() {
         return Map.copyOf(activeSessions);
+    }
+
+    public @Nullable DeathPromptManager getPromptManager() {
+        return promptManager;
     }
 
     public static @Nullable DeathRacePlugin getInstance() {
@@ -93,16 +109,16 @@ public final class DeathRacePlugin extends JavaPlugin {
             }
 
             DeathPrompt prompt = session.getAssignedPrompt(player.getUniqueId());
+            int score = session.getScore(player.getUniqueId());
             if (prompt == null) {
                 player.sendMessage(Component.text("No prompt assigned.", NamedTextColor.YELLOW));
                 return;
             }
 
-            if (session.isCompleted(player.getUniqueId())) {
-                player.sendMessage(Component.text("[DeathRace] You have already completed your prompt: ", NamedTextColor.GREEN)
-                        .append(Component.text(prompt.getDescription(), NamedTextColor.WHITE)));
+            if (session.hasWinner()) {
+                player.sendMessage(Component.text("[DeathRace] Match concluded! Your final score: " + score + "/" + DeathRaceSession.TARGET_SCORE, NamedTextColor.GREEN));
             } else {
-                player.sendMessage(Component.text("[DeathRace] Your prompt objective: ", NamedTextColor.GOLD)
+                player.sendMessage(Component.text("[DeathRace] Score: " + score + "/" + DeathRaceSession.TARGET_SCORE + " | Objective: ", NamedTextColor.GOLD)
                         .append(Component.text(prompt.getDescription(), NamedTextColor.YELLOW)));
             }
         }
