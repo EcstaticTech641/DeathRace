@@ -1,0 +1,81 @@
+# ==============================================================================
+#                      DEATHRACE ARENA SCHEMA & VECTORS CONFIGURATION
+# ==============================================================================
+# Micro-Companion Architecture (CPMK) Standard Arena Metadata
+# Companion Plugin: DeathRace (rga-deathrace)
+# Target Environment: Java 25 | PaperMC 26.2
+# ==============================================================================
+#
+# SOLO QA DEVELOPER MODE ARENA NOTES (initialPlayerCount == 1):
+# ------------------------------------------------------------------------------
+# In Solo QA Developer Mode (single-player session), arena spawn points and
+# pedestal vectors are bound identically to standard multiplayer matches, but
+# instant victory is frozen. QA testers spawn at the designated spawn-vectors
+# and can test fall-threshold resets, void triggers, and pedestal placements
+# repeatedly without match teardown until 3 points are earned.
+# ==============================================================================
+
+arena:
+  # Unique arena identifier
+  id: "deathrace_default"
+  
+  # Friendly display name for UI and messages
+  name: "DeathRace Classic Arena"
+
+  # Target world configuration
+  world: "world_deathrace"
+
+  # Fall Zone & Void Threshold Settings
+  # Y-coordinate threshold below which players trigger void death / out-of-bounds reset
+  fall-threshold-y: -64.0
+
+  # Arena round maximum time limit in seconds before automated conclude
+  time-limit-seconds: 600
+
+  # Player Spawn Vectors (Supports multi-slot spawn points)
+  spawn-vectors:
+    - slot: 1
+      x: 0.5
+      y: 65.0
+      z: 0.5
+      yaw: 0.0
+      pitch: 0.0
+    - slot: 2
+      x: 10.5
+      y: 65.0
+      z: 0.5
+      yaw: 90.0
+      pitch: 0.0
+    - slot: 3
+      x: -10.5
+      y: 65.0
+      z: 0.5
+      yaw: -90.0
+      pitch: 0.0
+    - slot: 4
+      x: 0.5
+      y: 65.0
+      z: 10.5
+      yaw: 180.0
+      pitch: 0.0
+
+  # Podium & Victory Pedestal Vectors
+  pedestals:
+    first-place:
+      x: 0.5
+      y: 68.0
+      z: -15.5
+      yaw: 0.0
+      pitch: 0.0
+    second-place:
+      x: -2.5
+      y: 67.0
+      z: -15.5
+      yaw: 0.0
+      pitch: 0.0
+    third-place:
+      x: 3.5
+      y: 66.0
+      z: -15.5
+      yaw: 0.0
+      pitch: 0.0

@@ -2,6 +2,7 @@ package com.ronlab.deathrace.prompt;
 
 import com.ronlab.deathrace.DeathRacePlugin;
 import com.ronlab.deathrace.session.DeathRaceSession;
+import com.ronlab.deathrace.ui.DeathRaceScoreboard;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -9,15 +10,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
 
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Objective Engine and Action Bar HUD manager for DeathRace sessions.
+ * Objective Engine and Action Bar HUD / Scoreboard manager for DeathRace sessions.
  */
 @NullMarked
 public final class DeathPromptManager {
@@ -35,13 +34,32 @@ public final class DeathPromptManager {
         return newPrompt;
     }
 
+    public void bindPostTeleportScoreboard(Player player, DeathRaceSession session) {
+        // Attach scoreboard during post-teleport spawn phase (2 ticks later after chunk load)
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline()) {
+                DeathRaceScoreboard sb = session.getOrCreateScoreboard(player.getUniqueId());
+                sb.update(player, session, session.getElapsedSeconds());
+                sb.attach(player);
+            }
+        }, 2L);
+    }
+
     public void startSessionHud(DeathRaceSession session) {
         String worldName = session.getWorldName();
         stopSessionHud(worldName);
 
+        // Schedule post-teleport scoreboard binding for all initial players
+        for (UUID uuid : session.getInitialPlayers()) {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null && p.isOnline()) {
+                bindPostTeleportScoreboard(p, session);
+            }
+        }
+
         BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             broadcastSessionHud(session);
-        }, 0L, 20L); // Update Action Bar HUD every 1 second
+        }, 0L, 20L); // Update Action Bar HUD and Scoreboard every 1 second
 
         hudTasks.put(worldName, task);
     }
@@ -53,11 +71,37 @@ public final class DeathPromptManager {
         }
     }
 
+    /**
+     * Stops the HUD ticker and destroys each player's scoreboard sidebar for
+     * the given session. This is the preferred teardown entry point when the
+     * session object is still available; it ensures the Death Race sidebar is
+     * cleared from every participant's client immediately.
+     *
+     * @param session the session whose scoreboards should be torn down
+     */
+    public void stopSessionHud(DeathRaceSession session) {
+        // Cancel the repeating HUD ticker first
+        stopSessionHud(session.getWorldName());
+
+        // Restore each player's scoreboard to the server default
+        for (UUID uuid : session.getInitialPlayers()) {
+            DeathRaceScoreboard sb = session.getScoreboard(uuid);
+            if (sb == null) continue;
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null) {
+                sb.destroy(player);
+            }
+        }
+    }
+
     public void broadcastSessionHud(DeathRaceSession session) {
+        long elapsed = session.getElapsedSeconds();
         for (UUID uuid : session.getInitialPlayers()) {
             Player player = Bukkit.getPlayer(uuid);
             if (player != null && player.isOnline()) {
                 updatePlayerHud(player, session);
+                DeathRaceScoreboard sb = session.getOrCreateScoreboard(uuid);
+                sb.update(player, session, elapsed);
             }
         }
     }

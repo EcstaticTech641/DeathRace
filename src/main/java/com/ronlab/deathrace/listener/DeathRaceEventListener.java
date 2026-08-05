@@ -19,6 +19,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -32,7 +33,7 @@ import java.util.UUID;
  * First-to-3 score engine, HUD presentation, and fatal damage prompt checks.
  */
 @NullMarked
-public final class DeathRaceEventListener implements Listener {
+public class DeathRaceEventListener implements Listener {
 
     private final @Nullable DeathRacePlugin plugin;
 
@@ -40,22 +41,42 @@ public final class DeathRaceEventListener implements Listener {
         this.plugin = plugin;
     }
 
+    /**
+     * No-arg constructor for callsites that do not hold a direct plugin reference
+     * (e.g. DeathRaceCompanion.onEnable()). Resolves the plugin instance defensively:
+     * prefers the static singleton, falls back to JavaPlugin.getPlugin() to avoid
+     * a null reference if the constructor is called before DeathRacePlugin.onLoad().
+     */
+    public DeathRaceEventListener() {
+        this(DeathRacePlugin.getInstance() != null
+                ? DeathRacePlugin.getInstance()
+                : JavaPlugin.getPlugin(DeathRacePlugin.class));
+    }
+
     public static boolean isDeathRaceMinigame(@Nullable String minigameId) {
         if (minigameId == null) {
             return false;
         }
-        String id = minigameId.toLowerCase().trim();
-        if (id.startsWith("rga:")) {
-            id = id.substring(4);
-        }
-        return "deathrace".equals(id) || "death_race".equals(id);
+        String id = minigameId.trim();
+        return id.equalsIgnoreCase("deathrace")
+                || id.equalsIgnoreCase("rga:deathrace")
+                || id.equalsIgnoreCase("death_race")
+                || id.equalsIgnoreCase("rga:death_race");
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onMinigameStart(MinigameStartEvent event) {
-        // Enforce strict event payload validation for minigame ID
-        if (event == null || !isDeathRaceMinigame(event.getMinigameId())) {
-            return; // Ignore events intended for other companion minigames
+        if (event == null || event.getMinigameId() == null) {
+            return;
+        }
+
+        // Early return guard: if minigame ID does not match "deathrace" (case-insensitive), return immediately without logging
+        if (!isDeathRaceMinigame(event.getMinigameId())) {
+            return;
+        }
+
+        if (plugin != null) {
+            plugin.getLogger().info("[DeathRace HANDSHAKE] Received MinigameStartEvent for world: " + event.getWorldName());
         }
 
         String worldName = event.getWorldName();
@@ -163,9 +184,13 @@ public final class DeathRaceEventListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onMinigameConclude(MinigameConcludeEvent event) {
-        // Enforce strict event payload validation for minigame ID
-        if (event == null || !isDeathRaceMinigame(event.getMinigameId())) {
-            return; // Ignore events intended for other companion minigames
+        if (event == null || event.getMinigameId() == null) {
+            return;
+        }
+
+        // Early return guard: if minigame ID does not match "deathrace" (case-insensitive), return immediately without logging
+        if (!isDeathRaceMinigame(event.getMinigameId())) {
+            return;
         }
 
         String worldName = event.getWorldName();

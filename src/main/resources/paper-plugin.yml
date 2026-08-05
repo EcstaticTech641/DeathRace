@@ -1,0 +1,9 @@
+name: rga-deathrace
+version: 1.0.0-SNAPSHOT
+main: com.ronlab.deathrace.DeathRacePlugin
+api-version: '26.2'
+dependencies:
+  server:
+    RonlabGameAssistant:
+      required: true
+      join-classpath: true

@@ -30,8 +30,15 @@ public final class DeathRacePlugin extends JavaPlugin {
     private @Nullable DeathPromptManager promptManager;
 
     @Override
-    public void onEnable() {
+    public void onLoad() {
+        // Set singleton early in the Paper lifecycle so getInstance() is safe
+        // before any companion plugin's onEnable() runs.
         instance = this;
+    }
+
+    @Override
+    public void onEnable() {
+        instance = this; // Redundant but explicit — guards against future refactors.
         promptManager = new DeathPromptManager(this);
 
         // Register event listeners
@@ -77,7 +84,15 @@ public final class DeathRacePlugin extends JavaPlugin {
         if (worldName == null) return null;
         DeathRaceSession session = activeSessions.remove(worldName);
         if (promptManager != null) {
-            promptManager.stopSessionHud(worldName);
+            if (session != null) {
+                // Session-aware teardown: cancels the HUD ticker and destroys
+                // each player's scoreboard sidebar so the client is cleared.
+                promptManager.stopSessionHud(session);
+            } else {
+                // Fallback: session was already removed or never registered;
+                // at minimum cancel the HUD ticker if one is still running.
+                promptManager.stopSessionHud(worldName);
+            }
         }
         return session;
     }

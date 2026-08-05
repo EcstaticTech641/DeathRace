@@ -1,0 +1,70 @@
+# ==============================================================================
+#                      DEATHRACE COMPANION PLUGIN CONFIGURATION
+# ==============================================================================
+# Target Environment: Java 25 | PaperMC 26.2 (1.21.4 API baseline)
+# Core Framework Baseline: Ronlab Game Assistant (rga-core / rga-api)
+# Micro-Companion Architecture (CPMK) Integration Standard
+# ==============================================================================
+#
+# SOLO QA DEVELOPER MODE DIRECTIVE (initialPlayerCount == 1):
+# ------------------------------------------------------------------------------
+# When a DeathRace minigame session is initialized with a single player
+# (initialPlayerCount == 1), Solo QA Developer Mode is automatically enabled.
+#
+# Key Solo QA Mode Behaviors:
+# 1. Instant Victory / Forfeit Suppression: The session will NOT immediately end
+#    or trigger forfeit logic due to lacking opponent players.
+# 2. Continuous Testing: Win condition check requires achieving the full target
+#    score (3/3 points), keeping the match active for uninterrupted developer
+#    testing of map resets, fall triggers, pedestal spawns, prompt generation,
+#    Action Bar HUD, and Paper 26.2 Scoreboard sidebar rendering.
+# 3. Teardown Safety: Upon session conclusion or server shutdown, scoreboard
+#    objectives are unregistered and player scoreboards are restored to main.
+# ==============================================================================
+
+# General Minigame Settings
+minigame:
+  # The unique identifier for DeathRace registered with CPMK event bus
+  id: "deathrace"
+  
+  # Display name rendered in scoreboard headers, titles, and logs
+  name: "Death Race"
+  
+  # Target score required to win a DeathRace session (First-to-3 engine)
+  target-score: 3
+
+# Match Timer & Threshold Settings
+match:
+  # Time limit for a DeathRace session in seconds (default: 600 seconds / 10 minutes)
+  time-limit-seconds: 600
+
+  # World Y-coordinate fall threshold below which a player is treated as out-of-bounds/void fall
+  fall-threshold-y: -64.0
+
+  # HUD and Scoreboard refresher tick interval (20 ticks = 1 second)
+  hud-update-interval-ticks: 20
+
+# Global Default Spawn & Pedestal Vector Defaults
+# Note: Specific arena geometry overrides are configured in arena.yml
+default-vectors:
+  # Default player spawn location vector relative to arena world center
+  spawn:
+    x: 0.5
+    y: 65.0
+    z: 0.5
+    yaw: 0.0
+    pitch: 0.0
+
+  # Default victory / start pedestal vector
+  pedestal:
+    x: 0.5
+    y: 66.0
+    z: 0.5
+
+# Objective Engine Configuration
+prompts:
+  # Enable random objective assignment on match start and point score
+  random-assignment: true
+  
+  # Total translated death objective count available in DeathPrompt registry
+  total-registered-prompts: 35

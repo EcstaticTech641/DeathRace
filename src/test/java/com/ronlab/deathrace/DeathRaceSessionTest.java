@@ -27,6 +27,7 @@ class DeathRaceSessionTest {
         assertEquals("session_world_1", session.getWorldName());
         assertEquals(2, session.getInitialPlayers().size());
         assertEquals(0, session.getScore(player1));
+        assertFalse(session.isSoloQaMode());
 
         session.assignPrompt(player1, DeathPrompt.ANVIL);
         session.assignPrompt(player2, DeathPrompt.LAVA);
@@ -37,6 +38,29 @@ class DeathRaceSessionTest {
     }
 
     @Test
+    @DisplayName("Solo QA Developer Mode suppresses instant win until 3 points")
+    void testSoloQaDeveloperMode() {
+        UUID soloPlayer = UUID.randomUUID();
+        DeathRaceSession session = new DeathRaceSession("deathrace", "Death Race", "solo_world", List.of(soloPlayer));
+        session.assignPrompt(soloPlayer, DeathPrompt.ANVIL);
+
+        assertTrue(session.isSoloQaMode());
+        assertFalse(session.hasWinner());
+        assertFalse(session.isAllCompleted());
+
+        assertEquals(1, session.addPoint(soloPlayer));
+        assertFalse(session.isAllCompleted());
+
+        assertEquals(2, session.addPoint(soloPlayer));
+        assertFalse(session.isAllCompleted());
+
+        assertEquals(3, session.addPoint(soloPlayer));
+        assertTrue(session.hasWinner());
+        assertTrue(session.isAllCompleted());
+        assertEquals(soloPlayer, session.getWinnerUuid());
+    }
+
+    @Test
     @DisplayName("First-to-3 point scoring and victory detection works correctly")
     void testFirstTo3PointScoring() {
         UUID player1 = UUID.randomUUID();
@@ -44,6 +68,8 @@ class DeathRaceSessionTest {
         List<UUID> players = List.of(player1, player2);
 
         DeathRaceSession session = new DeathRaceSession("deathrace", "Death Race", "session_world_2", players);
+        session.assignPrompt(player1, DeathPrompt.HIT_GROUND_TOO_HARD);
+        session.assignPrompt(player2, DeathPrompt.LAVA);
 
         assertEquals(1, session.addPoint(player1));
         assertFalse(session.hasWinner());
